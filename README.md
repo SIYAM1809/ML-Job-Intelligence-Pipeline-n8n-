@@ -88,25 +88,34 @@ Telegram Alert + CL
 
 ## 📸 Screenshots
 
-### n8n Pipeline Canvas
-![ML Job Pipeline Canvas](docs/screenshots/Canv-MLJobPipeline.png)
+<table>
+  <tr>
+    <td><b>ML Job Pipeline Canvas</b></td>
+    <td><b>Job Status Updater</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/Canv-%20ML%20Job%20Pipeline.png" width="400"/></td>
+    <td><img src="docs/screenshots/Canv-%20Job%20Status%20Updater.png" width="400"/></td>
+  </tr>
+  <tr>
+    <td><b>Telegram Job Alert</b></td>
+    <td><b>Telegram Error Alert</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/Tel%20Job%20Match%20.png" width="400"/></td>
+    <td><img src="docs/screenshots/Tel%20Error%20Alert.png" width="400"/></td>
+  </tr>
+  <tr>
+    <td><b>Google Sheets CRM</b></td>
+    <td><b>Weekly Report Workflow</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/Google%20Sheet.png" width="400"/></td>
+    <td><img src="docs/screenshots/Canv-%20Weekly%20Job%20Report.png" width="400"/></td>
+  </tr>
+</table>
 
-### Telegram Job Alert With Cover Letter
-![Telegram Job Alert](docs/screenshots/TelJobMatch.png)
 
-### Telegram Error Alert
-![Telegram Error Alert](docs/screenshots/TelErrorAlert.png)
-
-### Google Sheets CRM
-![Google Sheets Tracker](docs/screenshots/GoogleSheet.png)
-
-### Job Status Updater Workflow
-![Job Status Updater](docs/screenshots/Canv-JobStatusUpdater.png)
-
-### Weekly Report Workflow
-![Weekly Report](docs/screenshots/Canv-WeeklyJobReport.png)
-
----
 ---
 
 ## 📁 Repository Structure
