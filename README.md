@@ -83,6 +83,30 @@ Telegram Alert + CL
 | 🚨 Error handling | Global error alerts + retry logic on all HTTP nodes |
 | ❤️ Health checks | Daily Telegram ping confirming pipeline is alive |
 
+
+---
+
+## 📸 Screenshots
+
+### n8n Pipeline Canvas
+![ML Job Pipeline Canvas](docs/screenshots/Canv-MLJobPipeline.png)
+
+### Telegram Job Alert With Cover Letter
+![Telegram Job Alert](docs/screenshots/TelJobMatch.png)
+
+### Telegram Error Alert
+![Telegram Error Alert](docs/screenshots/TelErrorAlert.png)
+
+### Google Sheets CRM
+![Google Sheets Tracker](docs/screenshots/GoogleSheet.png)
+
+### Job Status Updater Workflow
+![Job Status Updater](docs/screenshots/Canv-JobStatusUpdater.png)
+
+### Weekly Report Workflow
+![Weekly Report](docs/screenshots/Canv-WeeklyJobReport.png)
+
+---
 ---
 
 ## 📁 Repository Structure
