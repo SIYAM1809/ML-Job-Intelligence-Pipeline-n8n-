@@ -1,0 +1,1012 @@
+{
+  "name": "Job Status Updater",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const text = $input.item.json.text;\nconst chatId = $input.item.json.chatId;\nconst replyToText = $input.item.json.replyToText;\n\nconst validCommands = ['applied', 'interview', 'rejected', 'offer', 'skip'];\n\nif (!validCommands.includes(text)) {\n  return [{\n    json: {\n      valid: false,\n      chatId,\n      reply: `Unknown command. Use one of: ${validCommands.join(', ')}`\n    }\n  }];\n}\n\n// Extract URL from original message\nconst urlMatch = replyToText.match(/https?:\\/\\/\\S+/);\nconst fullUrl = urlMatch ? urlMatch[0] : '';\n\nif (!fullUrl) {\n  return [{\n    json: {\n      valid: false,\n      chatId,\n      reply: 'Could not find job URL. Reply directly to a job alert message.'\n    }\n  }];\n}\n\n// Extract job_id from URL\nlet jobId = '';\n\n// Adzuna pattern\nconst adzunaMatch = fullUrl.match(/adzuna\\.com\\/land\\/ad\\/(\\d+)/);\nif (adzunaMatch) jobId = adzunaMatch[1];\n\n// Remotive pattern\nconst remotiveMatch = fullUrl.match(/-(\\d+)$/);\nif (remotiveMatch) jobId = remotiveMatch[1];\n\n// Arbeitnow pattern - uses slug as ID\nconst arbeitnowMatch = fullUrl.match(/arbeitnow\\.com\\/jobs\\/[^/]+\\/([^/?]+)/);\nif (arbeitnowMatch) jobId = arbeitnowMatch[1];\n\nreturn [{\n  json: {\n    valid: true,\n    status: text,\n    url: fullUrl,\n    job_id: jobId,\n    chatId,\n    reply: ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -48
+      ],
+      "id": "1f28d3d9-c4f1-4f67-a645-c2aed20b5bc0",
+      "name": "Parse Telegram Command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0e788a8-cb8e-4d83-9cba-02df7894811c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        -48
+      ],
+      "id": "30c59d0a-c89f-4577-be44-342b19d99788",
+      "name": "Is Valid Command"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "job_id",
+              "lookupValue": "={{ $json.job_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        784,
+        -144
+      ],
+      "id": "7f575563-c912-4b15-925f-71cd8984dae5",
+      "name": "Find Job Row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{ $json.url }}",
+            "status": "={{ $('Parse Telegram Command').item.json.status }}",
+            "job_id": "={{ $json.job_id }}"
+          },
+          "matchingColumns": [
+            "job_id"
+          ],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "match_reasons",
+              "displayName": "match_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        960,
+        -144
+      ],
+      "id": "8d228c4e-89a1-45d7-b7e1-2ccaf84dfdcd",
+      "name": "Update Job Status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Telegram Command').item.json.chatId }}",
+        "text": "=✅ Status updated to *{{ $('Parse Telegram Command').item.json.status.toUpperCase() }}*",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        -144
+      ],
+      "id": "7a40ab38-1df6-4ba5-b6d9-4133a5fb2bfe",
+      "name": "Send Confirmation",
+      "webhookId": "2304e625-8cbd-4893-b8aa-c3283d4fe3c8",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        48
+      ],
+      "id": "152ed3b4-f87c-4825-8841-2f7053a8d12f",
+      "name": "Send Error Reply",
+      "webhookId": "5dcd0250-aa54-4908-8f21-0cbfe88d26b0",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -480,
+        -48
+      ],
+      "id": "1fd67459-288b-4b28-8618-6beaed164e58",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.telegram.org/bot8746061489:AAHo5aK4pgHWRs_zOsJj58hJBXX4-w3g9bc/getUpdates?timeout=0&allowed_updates=[\"message\"]",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        -48
+      ],
+      "id": "8ab1cdec-9c72-4a63-9a70-deefd6fa4f1b",
+      "name": "Poll Telegram"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\n\nif (!data.ok || !data.result || data.result.length === 0) {\n  return [];\n}\n\n// Only process messages that are replies\nconst replyMessages = data.result.filter(update => \n  update.message && \n  update.message.reply_to_message &&\n  update.message.text\n);\n\nif (replyMessages.length === 0) {\n  return [];\n}\n\nreturn replyMessages.map(update => ({\n  json: {\n    update_id: update.update_id,\n    text: update.message.text.toLowerCase().trim(),\n    chatId: update.message.chat.id,\n    replyToText: update.message.reply_to_message.text || ''\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -48
+      ],
+      "id": "364f1357-8ba5-4dd2-988d-9c8328935669",
+      "name": "Extract New Messages"
+    },
+    {
+      "parameters": {
+        "jsCode": "const workflowStaticData = $getWorkflowStaticData('global');\nworkflowStaticData.lastUpdateId = 0;\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -48
+      ],
+      "id": "16fd67f6-8d04-468d-a8be-2f73d410b048",
+      "name": "Filter Already Processed"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f360aad5-f01a-42d8-a500-7c7e296855ad",
+              "leftValue": "={{ $('Parse Telegram Command').item.json.status }}",
+              "rightValue": "interview",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "a7a36f08-a710-45f7-bfd7-3903d1f684e2",
+              "leftValue": "={{ $('Parse Telegram Command').item.json.status }}",
+              "rightValue": "offer",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1296,
+        -144
+      ],
+      "id": "315c908b-0804-4f3d-8c43-3788b9293311",
+      "name": "Is Positive Outcome"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "job_id",
+              "lookupValue": "={{ $('Parse Telegram Command').item.json.job_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1472,
+        -304
+      ],
+      "id": "435b62f9-42fc-464e-8bc6-d07f3e27e845",
+      "name": "Get Job Details",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d49bad76-2fa8-4aac-8fce-e71c31767188",
+              "leftValue": "={{ $('Parse Telegram Command').item.json.status }}",
+              "rightValue": "rejected",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        32
+      ],
+      "id": "217ffb04-6861-41b5-89cc-2476d018adab",
+      "name": "Is Negative Outcome"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        192
+      ],
+      "id": "8b1057f8-6024-4c15-b6f2-71faa792bbd5",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1761966674,
+          "mode": "list",
+          "cachedResultName": "Feedback",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=1761966674"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "description": "={{ $json.description.substring(0, 1000) }}",
+            "tags": "={{ $json.tags }}",
+            "outcome": "positive",
+            "date_added": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "outcome",
+              "displayName": "outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_added",
+              "displayName": "date_added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1664,
+        -304
+      ],
+      "id": "e35a3424-a5a4-41f1-ac2b-f8731f97048e",
+      "name": "Save Positive Feedback",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        -304
+      ],
+      "id": "47248ef9-79aa-4021-83e9-14d143bc46e9",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        -64
+      ],
+      "id": "2a93f3ac-5648-4191-831c-2188c8531f55",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "job_id",
+              "lookupValue": "={{ $('Parse Telegram Command').item.json.job_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1680,
+        -64
+      ],
+      "id": "50f231af-b766-4d2e-bb6a-6a28e97d01d5",
+      "name": "Get Job Details Negative",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1761966674,
+          "mode": "list",
+          "cachedResultName": "Feedback",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=1761966674"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "description": "={{ $json.description.substring(0, 1000) }}",
+            "tags": "={{ $json.tags }}",
+            "outcome": "negative",
+            "date_added": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "outcome",
+              "displayName": "outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_added",
+              "displayName": "date_added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        -64
+      ],
+      "id": "422781bc-c11d-47df-ac0a-0b6ae3a227b9",
+      "name": "Save Negative Feedback",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Telegram Command": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Command": {
+      "main": [
+        [
+          {
+            "node": "Find Job Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Job Row": {
+      "main": [
+        [
+          {
+            "node": "Update Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Job Status": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Poll Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Telegram": {
+      "main": [
+        [
+          {
+            "node": "Extract New Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract New Messages": {
+      "main": [
+        [
+          {
+            "node": "Filter Already Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Already Processed": {
+      "main": [
+        [
+          {
+            "node": "Parse Telegram Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Positive Outcome": {
+      "main": [
+        [
+          {
+            "node": "Get Job Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Negative Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Details": {
+      "main": [
+        [
+          {
+            "node": "Save Positive Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Negative Outcome": {
+      "main": [
+        [
+          {
+            "node": "Get Job Details Negative",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Is Positive Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Positive Feedback": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Details Negative": {
+      "main": [
+        [
+          {
+            "node": "Save Negative Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Negative Feedback": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "AT7PDjjVckM34S0S",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "7a50a260-aff7-4528-9bb9-191ac586ee2a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1c891f7fcdb495c123a1f4a0ba7d2129680e58411840d394aba6c0b12e3cbe32"
+  },
+  "id": "eARaspIuL6RPUlJV",
+  "tags": []
+}

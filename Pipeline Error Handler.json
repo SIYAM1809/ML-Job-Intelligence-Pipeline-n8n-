@@ -1,0 +1,64 @@
+{
+  "name": "Pipeline Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cdf0d4f6-a745-473c-8d0e-d3613ff7684a",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "5911767937",
+        "text": "=🚨 Pipeline Error!  Workflow: {{ $json.workflow.name }} Node: {{ $json.execution.lastNodeExecuted }} Error: {{ $json.execution.error.message }}  Time: {{ new Date().toLocaleString() }}  Check n8n at http://localhost:5678",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2a569387-f065-4168-a715-3d4dd682c2ec",
+      "name": "Send Error Alert",
+      "webhookId": "bda5cfe4-3ae5-4189-8cac-ccee8051acfb",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "779d7688-28d5-47b7-abdd-59f9ce016aec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1c891f7fcdb495c123a1f4a0ba7d2129680e58411840d394aba6c0b12e3cbe32"
+  },
+  "id": "AT7PDjjVckM34S0S",
+  "tags": []
+}

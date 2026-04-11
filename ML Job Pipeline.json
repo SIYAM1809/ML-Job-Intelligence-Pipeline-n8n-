@@ -1,0 +1,1396 @@
+{
+  "name": "ML Job Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        640
+      ],
+      "id": "cd8f7419-8fa5-4cdd-9424-98c93fbf4258",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        240,
+        192
+      ],
+      "id": "f26c7fc0-c32e-40cc-9f82-232c1d7d2729",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.item.json;\n\nreturn [{\n  json: {\n    job_id: String(job.id),\n    title: job.title || '',\n    company: job.company_name || '',\n    description: (job.description || '').replace(/<[^>]*>/g, '').substring(0, 3000),\n    location: job.candidate_required_location || 'Remote',\n    url: job.url || '',\n    tags: (job.tags || []).join(', '),\n    date_posted: job.publication_date || new Date().toISOString(),\n    source: 'remotive'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        192
+      ],
+      "id": "0de7dec5-9776-425c-8c9e-f014f2c6001c",
+      "name": "Normalize Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheetRows = $('Read Existing Job').all();\nconst existingIds = new Set(\n  sheetRows\n    .filter(i => i.json && i.json.job_id)\n    .map(i => String(i.json.job_id).trim())\n);\n\nconst currentJob = $input.item.json;\n\nif (!currentJob.job_id) {\n  return [];\n}\n\nconst currentId = String(currentJob.job_id).trim();\n\nif (existingIds.has(currentId)) {\n  return [];\n}\n\nreturn [{ json: currentJob }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        480
+      ],
+      "id": "b5d80f09-c906-4cde-92ce-ff06c14351d8",
+      "name": "Dedup Check",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -528,
+        464
+      ],
+      "id": "ea80b402-b915-45c7-af46-394684052e0a",
+      "name": "Read Existing Job",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.item.json;\n\nconst positiveFeedback = '';\nconst negativeFeedback = '';\n\nconst MY_RESUME = `\nNAME: Md. Aman Uddin Siyam\n\nEDUCATION:\nBSc in Computer Science & Engineering — IUBAT, Dhaka, Bangladesh (2022 - Present)\nCGPA: 3.24\n\nSKILLS:\nAI & ML: Python, PyTorch, TensorFlow, scikit-learn, NumPy, Pandas, OpenCV, LangChain, LlamaIndex\nLLMs & RAG: Llama 3, Groq, Qdrant (Vector DB), RAG Architectures, SHAP (XAI)\nMLOps: Docker, FastAPI, Flask, GitHub Actions (CI/CD), Weights & Biases\nFull Stack: React, Next.js 14, Node.js, Express.js, MongoDB, TypeScript\nResearch: Signal Processing, EDA, Feature Engineering, Few-Shot Learning, Edge AI\n\nPROJECTS:\n1. BAT-Track — Lightweight UAV object tracking, 39.3 FPS, 60.5% power reduction, 64.2% IoU accuracy.\n2. Financial RAG Analyst — Production RAG pipeline, LlamaIndex + Qdrant + Llama 3, SEC 10-K analysis, Dockerized.\n3. DebateArena — Real-time AI-judged debate platform, Socket.IO, Gemini API, Next.js 14 + Express.js.\n4. Edge-ViT-FSL — Few-shot plant disease diagnosis, under 10MB, 22.13 FPS, 73.93% cross-domain accuracy.\n5. PCOS Detection — XGBoost+LightGBM+CatBoost ensemble, AUROC 0.976.\n\nPUBLICATIONS:\n- Voice-Based Parkinson's Disease Detection (SVM & XGBoost)\n- Clinical vs. Ultrasound for PCOS Detection (Accepted ICCIT)\n- Cosmetic Chemical Carcinogenicity ML Pipeline (Accepted ICCIT)\n- LENS-Guard: Lightweight VAE-CNN for Threat Detection (Accepted ICECTE)\n`;\n\nconst fewShotSection = (positiveFeedback || negativeFeedback) ? `\nLEARNING FROM PAST OUTCOMES:\n${positiveFeedback ? `Jobs that led to interviews/offers (score these types HIGHER):\\n${positiveFeedback}` : ''}\n${negativeFeedback ? `Jobs that led to rejections (score these types LOWER):\\n${negativeFeedback}` : ''}\nUse these patterns to calibrate your scoring.\n` : '';\n\nconst prompt = `You are a job-fit analyzer for ML/AI roles. The candidate is a final-year CS student from Bangladesh with strong ML, edge AI, RAG, and full-stack experience, plus published research.\n\nCANDIDATE RESUME:\n${MY_RESUME}\n${fewShotSection}\nJOB POSTING:\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nTags: ${job.tags}\nDescription:\n${job.description}\n\nAnalyze the fit carefully. Consider that the candidate is a student — don't penalize for lack of industry experience if skills match.\n\nUse these STRICT recommendation rules based on score:\n- score 80-100 → recommendation: \"apply\"\n- score 60-79 → recommendation: \"stretch\"\n- score 0-59 → recommendation: \"skip\"\n\nDo NOT override these rules. The recommendation must match the score range exactly.\n\nRespond ONLY with valid JSON. No markdown, no text outside the JSON:\n{\n  \"score\": <integer 0-100>,\n  \"recommendation\": \"<apply|stretch|skip>\",\n  \"match_reasons\": [\"<reason1>\", \"<reason2>\", \"<reason3>\"],\n  \"missing_skills\": [\"<skill1>\", \"<skill2>\"],\n  \"one_line_summary\": \"<one sentence on fit>\"\n}`;\n\nconst requestBody = {\n  model: \"llama-3.1-8b-instant\",\n  temperature: 0.3,\n  max_tokens: 500,\n  messages: [\n    {\n      role: \"user\",\n      content: prompt\n    }\n  ]\n};\n\nreturn [{ json: {\n  requestBody,\n  stored_job_id: job.job_id,\n  stored_title: job.title,\n  stored_company: job.company,\n  stored_url: job.url,\n  stored_source: job.source,\n  stored_score: job.score,\n  stored_recommendation: job.recommendation,\n  stored_match_reasons: job.match_reasons,\n  stored_missing_skills: job.missing_skills,\n  stored_one_line_summary: job.one_line_summary\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        480
+      ],
+      "id": "5bf1aeaa-37ce-417b-9be1-f19778c57e5a",
+      "name": "Build Scoring Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        480
+      ],
+      "id": "c6279c8e-172a-439b-bf74-11473324e900",
+      "name": "Groq LLM Call",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "lK1N2VBH9PgP7aIK",
+          "name": "Header Auth account"
+        },
+        "groqApi": {
+          "id": "PuHAvRYguAf3iTz2",
+          "name": "Groq account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$input.item.json.choices || !$input.item.json.choices[0]) {\n  return [];\n}\n\nconst raw = $input.item.json.choices[0].message.content;\nconst jobData = $('Dedup Check').item.json;\n\nif (!jobData || !jobData.job_id) {\n  return [];\n}\n\nlet parsed;\ntry {\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  parsed = {\n    score: 0,\n    recommendation: 'skip',\n    match_reasons: ['Parse error'],\n    missing_skills: [],\n    one_line_summary: 'Could not parse LLM response'\n  };\n}\n\nreturn [{\n  json: {\n    ...jobData,\n    score: Number(parsed.score),\n    recommendation: parsed.recommendation,\n    match_reasons: parsed.match_reasons || [],\n    missing_skills: parsed.missing_skills || [],\n    one_line_summary: parsed.one_line_summary || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        752
+      ],
+      "id": "d2afdd6d-c2a5-4659-b768-04d047f29b40",
+      "name": "Parse LLM Response",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "url": "={{ $json.url }}",
+            "source": "={{ $json.source }}",
+            "date_posted": "={{ $json.date_posted || new Date().toISOString() }}",
+            "date_found": "={{ new Date().toISOString() }}",
+            "score": "={{ $json.score }}",
+            "recommendation": "={{ $json.recommendation }}",
+            "match_reasons": "={{ $json.match_reasons.join('  ') }}",
+            "missing_skills": "={{ $json.missing_skills.join(' ') }}",
+            "status": "new",
+            "notes": "={{ $json.one_line_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "match_reasons",
+              "displayName": "match_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2496,
+        928
+      ],
+      "id": "d59eace3-a22b-4f29-a275-6e2614d3c2cf",
+      "name": "Write Job to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "51cb3d64-4e7a-4903-8a50-734c3431ca3a",
+              "leftValue": "={{ Number($json.score) }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2112,
+        672
+      ],
+      "id": "33c5ddd8-f45d-4a8b-820d-c141b726e0f1",
+      "name": "Score Filter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b615b0ac-cd58-47cc-830f-4333ad4433b4",
+              "leftValue": "={{ $json.job_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1856,
+        752
+      ],
+      "id": "9c5716b6-4605-4cee-86da-e7166f62be07",
+      "name": "Has Valid Job"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        1136
+      ],
+      "id": "7270e5e3-7ab0-4aab-8d1f-2c95c21c9165",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -736,
+        256
+      ],
+      "id": "81565563-8ee6-4778-8832-a90927f4c566",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://arbeitnow.com/api/job-board-api?search=machine+learning&limit=20",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -32,
+        464
+      ],
+      "id": "49d69221-720b-4ce8-9902-67075caab7c5",
+      "name": "Fetch Arbeitnow Jobs",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=8a112855&app_key=d386a64a3a40126cb4cba48f2f298f33&results_per_page=20&what=machine+learning&content-type=application/json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -32,
+        752
+      ],
+      "id": "c8e33522-cc93-4f9b-9fcf-defe4f7c4f99",
+      "name": "Fetch Adzuna Jobs",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.item.json;\n\nreturn [{\n  json: {\n    job_id: String(job.slug || job.title + job.company_name),\n    title: job.title || '',\n    company: job.company_name || '',\n    description: (job.description || '').replace(/<[^>]*>/g, '').substring(0, 3000),\n    location: job.location || 'Remote',\n    url: job.url || '',\n    tags: (job.tags || []).join(', '),\n    date_posted: job.created_at || new Date().toISOString(),\n    source: 'arbeitnow'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        464
+      ],
+      "id": "12196fc0-c578-473d-bee7-32c557010fa8",
+      "name": "Normalize Arbeitnow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.item.json;\n\nreturn [{\n  json: {\n    job_id: String(job.id),\n    title: job.title || '',\n    company: job.company?.display_name || '',\n    description: (job.description || '').replace(/<[^>]*>/g, '').substring(0, 3000),\n    location: job.location?.display_name || 'Remote',\n    url: job.redirect_url || '',\n    tags: '',\n    date_posted: job.created || new Date().toISOString(),\n    source: 'adzuna'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        752
+      ],
+      "id": "3ead2bec-9205-4939-8dfd-efc10bc53a6a",
+      "name": "Normalize Adzuna"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        208,
+        464
+      ],
+      "id": "88dd1670-e075-4a6f-b3e4-4c58750ec2ac",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        208,
+        752
+      ],
+      "id": "0efa9202-6554-4ff1-acae-3a29ed2bb03d",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "url": "https://remotive.com/api/remote-jobs?category=software-dev&search=machine+learning&limit=20",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -16,
+        192
+      ],
+      "id": "28a36907-95c2-4bd2-bc95-c5fd43c6fa77",
+      "name": "Fetch Remotive",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        1216
+      ],
+      "id": "a205238a-97a8-45b2-b85b-0550935a885d",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9367752-598f-44d3-8aee-3b95d5672406",
+              "leftValue": "={{ Number($json.score) }}",
+              "rightValue": 75,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2528,
+        432
+      ],
+      "id": "52ea150f-55e7-4600-a895-6d3190e44275",
+      "name": "Cover Letter Filter"
+    },
+    {
+      "parameters": {
+        "chatId": "5911767937",
+        "text": "=🎯 New ML Job Match!  Score: {{ $json.score }}/100 Role: {{ $json.title }} Company: {{ $json.company }} Fit: {{ $json.recommendation.toUpperCase() }}  📝 {{ $json.one_line_summary }}  ✅ Why it fits: - {{ $json.match_reasons.join('\\n• ') }}  ❌ Missing: {{ $json.missing_skills.join(', ') \n\n 'Nothing major' }}  🔗 {{ $json.url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3136,
+        1024
+      ],
+      "id": "ff6582fb-6fb9-46ba-b97f-fd9bc14e8f07",
+      "name": "Telegram Alert",
+      "webhookId": "30b94910-a12d-484b-8114-08cbd7f58e28",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.item.json;\nconst MY_RESUME = `\nNAME: Md. Aman Uddin Siyam\nEDUCATION:\nBSc in Computer Science & Engineering — IUBAT, Dhaka, Bangladesh (2022 - Present)\nCGPA: 3.24\nSKILLS:\nAI & ML: Python, PyTorch, TensorFlow, scikit-learn, NumPy, Pandas, OpenCV, LangChain, LlamaIndex\nLLMs & RAG: Llama 3, Groq, Qdrant (Vector DB), RAG Architectures, SHAP (XAI)\nMLOps: Docker, FastAPI, Flask, GitHub Actions (CI/CD), Weights & Biases\nFull Stack: React, Next.js 14, Node.js, Express.js, MongoDB, TypeScript\nResearch: Signal Processing, EDA, Feature Engineering, Few-Shot Learning, Edge AI\nPROJECTS:\n1. BAT-Track — Lightweight UAV object tracking, 39.3 FPS, 60.5% power reduction, 64.2% IoU accuracy.\n2. Financial RAG Analyst — Production RAG pipeline, LlamaIndex + Qdrant + Llama 3, SEC 10-K analysis, Dockerized.\n3. DebateArena — Real-time AI-judged debate platform, Socket.IO, Gemini API, Next.js 14 + Express.js.\n4. Edge-ViT-FSL — Few-shot plant disease diagnosis, under 10MB, 22.13 FPS, 73.93% cross-domain accuracy.\n5. PCOS Detection — XGBoost+LightGBM+CatBoost ensemble, AUROC 0.976.\nPUBLICATIONS:\n- Voice-Based Parkinson's Disease Detection (SVM & XGBoost)\n- Clinical vs. Ultrasound for PCOS Detection (Accepted ICCIT)\n- Cosmetic Chemical Carcinogenicity ML Pipeline (Accepted ICCIT)\n- LENS-Guard: Lightweight VAE-CNN for Threat Detection (Accepted ICECTE)\n`;\n\nconst title = job.title || '';\nconst company = job.company || '';\nconst location = job.location || '';\nconst description = (job.description || '').substring(0, 500);\nconst matchReasons = Array.isArray(job.match_reasons)\n  ? job.match_reasons.join(', ')\n  : (job.match_reasons || '');\n\nconst prompt = `You are an expert cover letter writer for ML/AI roles.\nWrite a concise, non-generic cover letter (200-250 words maximum) for this job.\nCANDIDATE RESUME:\n${MY_RESUME}\nJOB:\nTitle: ${title}\nCompany: ${company}\nLocation: ${location}\nMatch reasons: ${matchReasons}\nDescription excerpt: ${description}\nSTRICT RULES:\n- Never open with \"I am writing to express my interest\"\n- Lead with a specific technical accomplishment from the resume that directly matches the role\n- Mention the company name naturally once\n- Reference 1-2 specific projects by name if relevant\n- End with one concrete question about their ML infrastructure or team\n- No fluff, no filler sentences\n- Plain text only, no markdown, no bullet points\nWrite the cover letter now:`;\n\nconst requestBody = {\n  model: \"llama-3.3-70b-versatile\",\n  temperature: 0.4,\n  max_tokens: 600,\n  messages: [\n    {\n      role: \"user\",\n      content: prompt\n    }\n  ]\n};\n\nreturn [{ json: {\n  requestBody,\n  stored_job_id: job.job_id,\n  stored_title: job.title,\n  stored_company: job.company,\n  stored_url: job.url,\n  stored_source: job.source,\n  stored_score: job.score,\n  stored_recommendation: job.recommendation,\n  stored_match_reasons: job.match_reasons,\n  stored_missing_skills: job.missing_skills,\n  stored_one_line_summary: job.one_line_summary\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        208
+      ],
+      "id": "e2591da7-b9db-4bab-8435-4b86c118338e",
+      "name": "Build CL Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3312,
+        208
+      ],
+      "id": "3c62dfb8-1a0a-4337-bd4f-5661e18600bf",
+      "name": "Groq CL Call",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "groqApi": {
+          "id": "PuHAvRYguAf3iTz2",
+          "name": "Groq account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$input.item.json.choices || !$input.item.json.choices[0]) {\n  return [];\n}\n\nconst coverLetter = $input.item.json.choices[0].message.content.trim();\nconst source = $('Cover Letter Filter').item.json;\n\nif (!source || !source.job_id) {\n  return [];\n}\n\nreturn [{\n  json: {\n    job_id: source.job_id,\n    title: source.title,\n    company: source.company,\n    url: source.url,\n    source: source.source,\n    score: source.score,\n    recommendation: source.recommendation,\n    match_reasons: source.match_reasons,\n    missing_skills: source.missing_skills,\n    one_line_summary: source.one_line_summary,\n    cover_letter: coverLetter\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        464
+      ],
+      "id": "8a4fd6f3-7c12-49d6-b8ff-2bf3b5d4ef73",
+      "name": "Parse Cover Letter"
+    },
+    {
+      "parameters": {
+        "chatId": "5911767937",
+        "text": "=🎯 Strong ML Job Match!\n\nScore: {{ $json.score }}/100\nRole: {{ $json.title }}\nCompany: {{ $json.company }}\nFit: {{ $json.recommendation }}\n\n📝 {{ $json.one_line_summary }}\n\n✅ Why it fits:\n{{ $json.match_reasons }}\n\n❌ Missing: {{ $json.missing_skills }}\n\n📄 Cover Letter:\n{{ $json.cover_letter }}\n\n🔗 {{ $json.url }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3136,
+        752
+      ],
+      "id": "018f96e6-a53f-4119-b2a3-45b01b54b449",
+      "name": "Telegram Alert With CL",
+      "webhookId": "b3229fdd-9d8c-495b-bcec-82b6df86f0d5",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3088,
+        208
+      ],
+      "id": "bf27067c-6887-44fb-8283-cdf511723e06",
+      "name": "Wait",
+      "webhookId": "398bfb94-40b8-495e-a8d2-be7c7a611f91"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "url": "={{ $json.url }}",
+            "source": "={{ $json.source }}",
+            "date_posted": "={{ $json.date_posted || new Date().toISOString() }}",
+            "date_found": "={{ new Date().toISOString() }}",
+            "score": "={{ $json.score }}",
+            "recommendation": "={{ $json.recommendation }}",
+            "match_reasons": "={{ $json.match_reasons.join('  ') }}",
+            "missing_skills": "={{ $json.missing_skills.join(' ') }}",
+            "status": "new",
+            "notes": "={{ $json.one_line_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "match_reasons",
+              "displayName": "match_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2848,
+        608
+      ],
+      "id": "30ec89dd-ee4b-4052-83d3-1598935e0423",
+      "name": "Write Job to Sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "url": "={{ $json.url }}",
+            "source": "={{ $json.source }}",
+            "date_posted": "={{ $json.date_posted || new Date().toISOString() }}",
+            "date_found": "={{ new Date().toISOString() }}",
+            "score": "={{ $json.score }}",
+            "recommendation": "={{ $json.recommendation }}",
+            "match_reasons": "={{ $json.match_reasons.join('  ') }}",
+            "missing_skills": "={{ $json.missing_skills.join(' ') }}",
+            "status": "new",
+            "notes": "={{ $json.one_line_summary }}",
+            "cover_letter": "={{ $json.cover_letter }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "match_reasons",
+              "displayName": "match_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3312,
+        464
+      ],
+      "id": "456fc96f-e093-497d-b68f-402333336a59",
+      "name": "Write Job to Sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read Existing Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "Dedup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Existing Job": {
+      "main": [
+        [
+          {
+            "node": "Fetch Remotive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Arbeitnow Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Adzuna Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Check": {
+      "main": [
+        [
+          {
+            "node": "Build Scoring Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Scoring Prompt": {
+      "main": [
+        [
+          {
+            "node": "Groq LLM Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq LLM Call": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Job to Sheet": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Filter": {
+      "main": [
+        [
+          {
+            "node": "Cover Letter Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Job to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Job": {
+      "main": [
+        [
+          {
+            "node": "Score Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Existing Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Arbeitnow Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Adzuna Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Arbeitnow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Normalize Adzuna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Remotive": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Dedup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Adzuna": {
+      "main": [
+        [
+          {
+            "node": "Dedup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cover Letter Filter": {
+      "main": [
+        [
+          {
+            "node": "Build CL Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Job to Sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CL Prompt": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq CL Call": {
+      "main": [
+        [
+          {
+            "node": "Parse Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Write Job to Sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Groq CL Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Job to Sheet1": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Job to Sheet2": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert With CL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "AT7PDjjVckM34S0S",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "17378cd1-1b39-42d2-bb6c-3289e303df01",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1c891f7fcdb495c123a1f4a0ba7d2129680e58411840d394aba6c0b12e3cbe32"
+  },
+  "id": "Hn0DLKrs1wtdmMmR",
+  "tags": []
+}

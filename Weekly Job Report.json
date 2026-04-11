@@ -1,0 +1,224 @@
+{
+  "name": "Weekly Job Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9ecb5546-24ed-48b7-ba8b-26d72c2451c3",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac",
+          "mode": "list",
+          "cachedResultName": "Job Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bd5MTuVBr-ShUJOUig38ce8U1Tq1VjOXT3aU7G7Vqac/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b2b31a69-e7b4-40ea-b0cd-e41ab590d0e3",
+      "name": "Read All Jobs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2Hknnwav0QgMQNyG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\n\nconst total = rows.length;\nconst byStatus = {\n  new: 0,\n  applied: 0,\n  interview: 0,\n  rejected: 0,\n  offer: 0,\n  skip: 0\n};\n\nconst bySource = {\n  remotive: 0,\n  arbeitnow: 0,\n  adzuna: 0\n};\n\nlet totalScore = 0;\nlet scored = 0;\nlet highMatches = 0;\n\nrows.forEach(row => {\n  // Status counts\n  const status = (row.status || 'new').toLowerCase();\n  if (byStatus.hasOwnProperty(status)) byStatus[status]++;\n\n  // Source counts\n  const source = (row.source || '').toLowerCase();\n  if (bySource.hasOwnProperty(source)) bySource[source]++;\n\n  // Score stats\n  const score = Number(row.score);\n  if (score > 0) {\n    totalScore += score;\n    scored++;\n  }\n  if (score >= 75) highMatches++;\n});\n\nconst avgScore = scored > 0 ? (totalScore / scored).toFixed(1) : 0;\nconst conversionRate = byStatus.applied > 0 && byStatus.interview > 0\n  ? ((byStatus.interview / byStatus.applied) * 100).toFixed(1)\n  : 0;\n\nreturn [{\n  json: {\n    total,\n    byStatus,\n    bySource,\n    avgScore,\n    highMatches,\n    conversionRate\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3ee350ab-b799-4c3d-83db-b779a6661923",
+      "name": "Calculate Stats"
+    },
+    {
+      "parameters": {
+        "chatId": "5911767937",
+        "text": "=📊 Weekly Job Pipeline Report  📅 As of: {{ new Date().toLocaleDateString() }}  📦 Total Jobs Tracked: {{ $json.total }} ⭐ High Matches (≥75): {{ $json.highMatches }} 📈 Avg Match Score: {{ $json.avgScore }}/100  📋 Status Breakdown: - New: {{ $json.byStatus.new }} - Applied: {{ $json.byStatus.applied }} - Interview: {{ $json.byStatus.interview }} - Offer: {{ $json.byStatus.offer }} - Rejected: {{ $json.byStatus.rejected }} - Skipped: {{ $json.byStatus.skip }}  🎯 Interview Conversion Rate: {{ $json.conversionRate }}%  🌐 Sources: - Remotive: {{ $json.bySource.remotive }} - Arbeitnow: {{ $json.bySource.arbeitnow }} - Adzuna: {{ $json.bySource.adzuna }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a4876564-9eed-4dca-ace9-7ae53d1b3b22",
+      "name": "Send Weekly Report",
+      "webhookId": "10a39153-6072-481b-9230-ef69dd85e4ca",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -160
+      ],
+      "id": "4be82673-4e18-44d0-845f-512648621779",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        -208
+      ],
+      "id": "1b2da3bd-99d9-4081-9e01-6d00190e1c12",
+      "name": "Daily Health Check"
+    },
+    {
+      "parameters": {
+        "chatId": "5911767937",
+        "text": "=✅ ML Job Pipeline — Daily Health Check  Status: Running normally Time: {{ new Date().toLocaleString() }} Next run: In 2 hours  All systems operational.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        -208
+      ],
+      "id": "1933a59c-08f8-4020-9148-60c9354be157",
+      "name": "Send Health Check",
+      "webhookId": "b6bfd3cd-5f71-4791-801b-adce84770266",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Bpbkea6o7GQotK0",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read All Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Jobs": {
+      "main": [
+        [
+          {
+            "node": "Calculate Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read All Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Health Check": {
+      "main": [
+        [
+          {
+            "node": "Send Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "AT7PDjjVckM34S0S",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "e6294db5-253e-4d14-952e-af44628011ec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1c891f7fcdb495c123a1f4a0ba7d2129680e58411840d394aba6c0b12e3cbe32"
+  },
+  "id": "WJCf2aQTB83LLB4a",
+  "tags": []
+}
