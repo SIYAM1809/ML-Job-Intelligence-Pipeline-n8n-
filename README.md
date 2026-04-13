@@ -287,6 +287,8 @@ The system calibrates scoring toward roles that actually convert for your specif
 
 ## 🚢 Deployment (Railway)
 
+🌐 **Live Instance:** [primary-production-86490.up.railway.app](https://primary-production-86490.up.railway.app)
+
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/n8n)
 
 Set these environment variables on Railway:
